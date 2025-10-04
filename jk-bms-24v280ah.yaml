@@ -1,0 +1,229 @@
+# Tích hợp common.yaml để tái sử dụng config chung
+<<: !include common.yaml
+
+external_components:
+  - source: github://syssi/esphome-jk-bms@main
+
+esphome:
+  name: 24v280ah
+  friendly_name: 24v280ah
+
+esp32:
+  board: esp32dev
+
+# ──────────────────────────── Wi-Fi networks riêng ────────────────────────────
+wifi:
+  networks:
+    # === Aruba T1 (Channel 1) ===
+    # - ssid: !secret wifi_ssid
+    #   password: !secret wifi_password
+    #   bssid: !secret wifi_bssid_t1
+    #   channel: !secret wifi_channel_t1
+
+    # === Aruba T2 (Channel 6) ===
+    # - ssid: !secret wifi_ssid
+    #   password: !secret wifi_password
+    #   bssid: !secret wifi_bssid_t2
+    #   channel: !secret wifi_channel_t2
+
+    # === Aruba T3 (Channel 11) - Hiện tại active ===
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+      bssid: !secret wifi_bssid_t3
+      channel: !secret wifi_channel_t3
+
+uart:
+  id: uart_0
+  tx_pin: GPIO16
+  rx_pin: GPIO17
+  baud_rate: 115200
+  rx_buffer_size: 1024        
+
+jk_modbus:
+  id: modbus0
+  uart_id: uart_0
+
+jk_bms:
+  id: bms0
+  jk_modbus_id: modbus0
+  update_interval: 5s
+
+sensor:
+  - platform: jk_bms
+    
+    total_voltage:
+      name: "Total Voltage"
+    current:
+      name: "Current"
+    power:
+      name: "Power"
+    charging_power:
+      name: "Charging Power"
+
+    min_cell_voltage:
+      name: "Min Cell V"
+    max_cell_voltage:
+      name: "Max Cell V"
+    min_voltage_cell:
+      name: "Min voltage cell"
+    max_voltage_cell:
+      name: "Max voltage cell"
+    delta_cell_voltage:
+      name: "Delta Cell V"
+    average_cell_voltage:
+      name: "Average Cell V"
+    discharging_power:
+      name: "Discharging Power"
+    capacity_remaining:
+      name: "Remaining Capacity"
+    capacity_remaining_derived:
+      name: "Capacity Remaining Derived"
+    temperature_sensor_1:
+      name: "Temperature Sensor 1"
+    temperature_sensor_2:
+      name: "Temperature Sensor 2"
+    power_tube_temperature:
+      name: "MOSFET Temperature"
+    cell_voltage_1:
+      name: "Cell 1 Voltage"
+    cell_voltage_2:
+      name: "Cell 2 Voltage"
+    cell_voltage_3:
+      name: "Cell 3 Voltage"
+    cell_voltage_4:
+      name: "Cell 4 Voltage"
+    cell_voltage_5:
+      name: "Cell 5 Voltage"
+    cell_voltage_6:
+      name: "Cell 6 Voltage"
+    cell_voltage_7:
+      name: "Cell 7 Voltage"
+    cell_voltage_8:
+      name: "Cell 8 Voltage"
+    errors_bitmask:
+      name: "Error Bitmask"
+    charging_cycles:
+      name: "Charging Cycles"
+    total_charging_cycle_capacity:
+      name: "Total Charging Cycle Capacity"
+    total_runtime:
+      name: "Total Runtime"
+    battery_strings:
+      name: "Battery Strings"
+
+    operation_mode_bitmask:
+      name: "Operation Mode Bitmask"
+    total_voltage_overvoltage_protection:
+      name: "Total Voltage Overvoltage Protection"
+    total_voltage_undervoltage_protection:
+      name: "Total Voltage Undervoltage Protection"
+    cell_voltage_overvoltage_protection:
+      name: "Cell Voltage Overvoltage Protection"
+    cell_voltage_overvoltage_recovery:
+      name: "Cell Voltage Overvoltage Recovery"
+    cell_voltage_overvoltage_delay:
+      name: "Cell Voltage Overvoltage Delay"
+    cell_voltage_undervoltage_protection:
+      name: "Cell Voltage Undervoltage Protection"
+    cell_voltage_undervoltage_recovery:
+      name: "Cell Voltage Undervoltage Recovery"
+    cell_voltage_undervoltage_delay:
+      name: "Cell Voltage Undervoltage Delay"
+    cell_pressure_difference_protection:
+      name: "Cell Pressure Difference Protection"
+    discharging_overcurrent_protection:
+      name: "Discharging Overcurrent Protection"
+    discharging_overcurrent_delay:
+      name: "Discharging Overcurrent Delay"
+    charging_overcurrent_protection:
+      name: "Charging Overcurrent Protection"
+    charging_overcurrent_delay:
+      name: "Charging Overcurrent Delay"
+    balance_starting_voltage:
+      name: "Balance Starting Voltage"
+    balance_opening_pressure_difference:
+      name: "Balance Opening Pressure Difference"
+    power_tube_temperature_protection:
+      name: "Power Tube Temperature Protection"
+    power_tube_temperature_recovery:
+      name: "Power Tube Temperature Recovery"
+    temperature_sensor_temperature_protection:
+      name: "Temperature Sensor Temperature Protection"
+    temperature_sensor_temperature_recovery:
+      name: "Temperature Sensor Temperature Recovery"
+    temperature_sensor_temperature_difference_protection:
+      name: "Temperature Sensor Temperature Difference Protection"
+    charging_high_temperature_protection:
+      name: "Charging High Temperature Protection"
+    discharging_high_temperature_protection:
+      name: "Discharging High Temperature Protection"
+    charging_low_temperature_protection:
+      name: "Charging Low Temperature Protection"
+    charging_low_temperature_recovery:
+      name: "Charging Low Temperature Recovery"
+    discharging_low_temperature_protection:
+      name: "Discharging Low Temperature Protection"
+    discharging_low_temperature_recovery:
+      name: "Discharging Low Temperature Recovery"
+    total_battery_capacity_setting:
+      name: "Total Battery Capacity Setting"
+    current_calibration:
+      name: "Current Calibration"
+    device_address:
+      name: "Device Address"
+    sleep_wait_time:
+      name: "Sleep Wait Time"
+    alarm_low_volume:
+      name: "Alarm Low Volume"
+    manufacturing_date:
+      name: "Manufacturing Date"
+
+#    start_current_calibration:
+#      name: "start current calibration"
+    actual_battery_capacity:
+      name: "Actual Battery Capacity"
+#    protocol_version:
+#      name: "protocol version"
+binary_sensor:
+  - platform: jk_bms
+    jk_bms_id: bms0
+    balancing:
+      name: "Balancing"
+    balancing_switch:
+      name: "balancing switch"
+    charging:
+      name: "Charging"
+    discharging:
+      name: "Discharging"
+    dedicated_charger_switch:
+      name: "dedicated charger switch"
+    online_status:
+      name: "Online Status"
+
+switch:
+  - platform: jk_bms
+    charging:
+      name: "Charging"
+    discharging:
+      name: "Discharging"
+
+text_sensor:
+  - platform: jk_bms
+    errors:
+      name: "Errors"
+    operation_mode:
+      name: "Operation Mode"
+    battery_type:
+      name: "Battery Type"
+    software_version:
+      name: "Software Version"
+    manufacturer:
+      name: "Manufacturer"
+    password:
+      name: "Password"
+    device_type:
+      name: "Device Type"
+
+
+    total_runtime_formatted:
+      name: "Total Runtime Formatted"
