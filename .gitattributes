@@ -1,0 +1,5 @@
+# Override GitHub linguist: ESPHome YAML is primary language
+*.yaml linguist-detectable=true
+*.yml linguist-detectable=true
+*.bat linguist-vendored=false
+*.yaml linguist-language=YAML
