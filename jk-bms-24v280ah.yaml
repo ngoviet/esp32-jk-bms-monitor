@@ -2,7 +2,8 @@
 <<: !include common.yaml
 
 external_components:
-  - source: github://syssi/esphome-jk-bms@main
+  # 3.0.0 + bản sửa biên dịch cho ESPHome 2026.11 (tag 3.0.0 thiếu format_hex_pretty), ghim 19/11/2026
+  - source: github://syssi/esphome-jk-bms@daa3f7719096ca5bf127b6a9dfdaa4454d7de83f
 
 esphome:
   name: 24v280ah
@@ -10,27 +11,19 @@ esphome:
 
 esp32:
   board: esp32dev
+  # Ghi rõ: khối esp32 của common.yaml bị bỏ khi trộn '<<', bản 2025.9.1 trước đây
+  # vì thế chạy Arduino. Từ 19/11/2026 chạy ESP-IDF (mặc định từ ESPHome 2026.1).
+  framework:
+    type: esp-idf
 
 # ──────────────────────────── Wi-Fi networks riêng ────────────────────────────
 wifi:
   networks:
-    # === Aruba T1 (Channel 1) ===
-    # - ssid: !secret wifi_ssid
-    #   password: !secret wifi_password
-    #   bssid: !secret wifi_bssid_t1
-    #   channel: !secret wifi_channel_t1
-
-    # === Aruba T2 (Channel 6) ===
-    # - ssid: !secret wifi_ssid
-    #   password: !secret wifi_password
-    #   bssid: !secret wifi_bssid_t2
-    #   channel: !secret wifi_channel_t2
-
-    # === Aruba T3 (Channel 11) - Hiện tại active ===
+    # Không ghim BSSID/kênh nữa (19/11/2026): Aruba tự đổi kênh (T3 nay ở kênh 1),
+    # mà ESPHome 2026.x chỉ nhận AP đúng kênh đã ghim -> thiết bị mất mạng sau
+    # khi nạp. Để thiết bị tự quét và chọn AP mạnh nhất, như các repo khác (18/11).
     - ssid: !secret wifi_ssid
       password: !secret wifi_password
-      bssid: !secret wifi_bssid_t3
-      channel: !secret wifi_channel_t3
 
 uart:
   id: uart_0
@@ -74,15 +67,15 @@ sensor:
       name: "Average Cell V"
     discharging_power:
       name: "Discharging Power"
-    capacity_remaining:
+    state_of_charge:
       name: "Remaining Capacity"
-    capacity_remaining_derived:
+    capacity_remaining:
       name: "Capacity Remaining Derived"
     temperature_sensor_1:
       name: "Temperature Sensor 1"
     temperature_sensor_2:
       name: "Temperature Sensor 2"
-    power_tube_temperature:
+    mosfet_temperature:
       name: "MOSFET Temperature"
     cell_voltage_1:
       name: "Cell 1 Voltage"
@@ -108,7 +101,7 @@ sensor:
       name: "Total Charging Cycle Capacity"
     total_runtime:
       name: "Total Runtime"
-    battery_strings:
+    cell_count:
       name: "Battery Strings"
 
     operation_mode_bitmask:
@@ -129,7 +122,7 @@ sensor:
       name: "Cell Voltage Undervoltage Recovery"
     cell_voltage_undervoltage_delay:
       name: "Cell Voltage Undervoltage Delay"
-    cell_pressure_difference_protection:
+    cell_voltage_difference_protection:
       name: "Cell Pressure Difference Protection"
     discharging_overcurrent_protection:
       name: "Discharging Overcurrent Protection"
@@ -139,33 +132,33 @@ sensor:
       name: "Charging Overcurrent Protection"
     charging_overcurrent_delay:
       name: "Charging Overcurrent Delay"
-    balance_starting_voltage:
+    balancing_start_voltage:
       name: "Balance Starting Voltage"
-    balance_opening_pressure_difference:
+    balancing_delta_voltage:
       name: "Balance Opening Pressure Difference"
-    power_tube_temperature_protection:
+    mosfet_overtemperature_protection:
       name: "Power Tube Temperature Protection"
-    power_tube_temperature_recovery:
+    mosfet_overtemperature_recovery:
       name: "Power Tube Temperature Recovery"
-    temperature_sensor_temperature_protection:
+    battery_overtemperature_protection:
       name: "Temperature Sensor Temperature Protection"
-    temperature_sensor_temperature_recovery:
+    battery_overtemperature_recovery:
       name: "Temperature Sensor Temperature Recovery"
-    temperature_sensor_temperature_difference_protection:
+    battery_temperature_difference_protection:
       name: "Temperature Sensor Temperature Difference Protection"
-    charging_high_temperature_protection:
+    charging_overtemperature_protection:
       name: "Charging High Temperature Protection"
-    discharging_high_temperature_protection:
+    discharging_overtemperature_protection:
       name: "Discharging High Temperature Protection"
-    charging_low_temperature_protection:
+    charging_undertemperature_protection:
       name: "Charging Low Temperature Protection"
-    charging_low_temperature_recovery:
+    charging_undertemperature_recovery:
       name: "Charging Low Temperature Recovery"
-    discharging_low_temperature_protection:
+    discharging_undertemperature_protection:
       name: "Discharging Low Temperature Protection"
-    discharging_low_temperature_recovery:
+    discharging_undertemperature_recovery:
       name: "Discharging Low Temperature Recovery"
-    total_battery_capacity_setting:
+    full_charge_capacity:
       name: "Total Battery Capacity Setting"
     current_calibration:
       name: "Current Calibration"
@@ -173,7 +166,7 @@ sensor:
       name: "Device Address"
     sleep_wait_time:
       name: "Sleep Wait Time"
-    alarm_low_volume:
+    low_soc_alarm_threshold:
       name: "Alarm Low Volume"
     manufacturing_date:
       name: "Manufacturing Date"
