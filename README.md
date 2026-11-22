@@ -61,7 +61,7 @@ JK-BMS RS485 ↔ TTL Converter ↔ ESP32
 - Install ESPHome
 - Connect the ESP32 to the JK-BMS through an RS485/TTL converter
 - **Security configuration**: copy `secrets.yaml.example` → `secrets.yaml` and fill in your real details
-- **Wi-Fi**: set the SSID, password, `ota_password` and `ap_password` (rescue hotspot password)
+- **Wi-Fi**: set the SSID, password and `ap_password` (rescue hotspot password). OTA updates need no password
 
 ### 2. Flash the firmware
 
@@ -110,8 +110,7 @@ Every `name:` in the device file is the source of a Home Assistant entity_id (`s
 
 1. **NEVER** commit `secrets.yaml` to Git
 2. Use **strong passwords** (at least 12 characters)
-3. **Change the OTA password** from the default
-4. Check `.gitignore` before committing
+3. Check `.gitignore` before committing
 
 Setting up secrets:
 
@@ -122,9 +121,6 @@ cp secrets.yaml.example secrets.yaml
 # 2. Edit it with your real details
 # 3. Check gitignore
 git status  # secrets.yaml must NOT be listed
-
-# 4. Generate a strong OTA password
-openssl rand -base64 32
 ```
 
 ## Home Assistant

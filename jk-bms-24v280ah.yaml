@@ -12,7 +12,8 @@
 substitutions:
   name: 24v280ah
   friendly_name: 24v280ah
-  log_level: DEBUG
+  # INFO vẫn thấy "Status frame received"; đổi DEBUG khi cần xem từng khung.
+  log_level: INFO
   tx_pin: GPIO16
   rx_pin: GPIO17
 
@@ -80,6 +81,9 @@ sensor:
     # ── Pin ──
     total_voltage:
       name: "Total Voltage"
+      filters:
+        - throttle_average: 30s
+        - round: 2
     current:
       name: "Current"
     power:
@@ -100,38 +104,61 @@ sensor:
       name: "Total Charging Cycle Capacity"
     total_runtime:
       name: "Total Runtime"
+      filters:
+        # Bộ đếm phút chạy của BMS: 10 phút một lần là đủ.
+        - throttle: 600s
     cell_count:
       name: "Battery Strings"
 
     # ── Cell ──
     min_cell_voltage:
       name: "Min Cell V"
+      filters: &loc_cell
+        # Trung bình 60 s rồi làm tròn 1 mV: giữ độ phân giải của BMS, bỏ dao động lẻ
+        # của số thực. Trước 22/11/2026: ~3.200 dòng recorder/ngày mỗi cell.
+        - throttle_average: 60s
+        - round: 3
     max_cell_voltage:
       name: "Max Cell V"
+      filters: *loc_cell
     min_voltage_cell:
       name: "Min voltage cell"
+      filters: &loc_so_cell
+        # Số thứ tự cell (không phải điện áp): không lấy trung bình, chỉ giãn nhịp.
+        - throttle: 60s
     max_voltage_cell:
       name: "Max voltage cell"
+      filters: *loc_so_cell
     delta_cell_voltage:
       name: "Delta Cell V"
+      filters: *loc_cell
     average_cell_voltage:
       name: "Average Cell V"
+      filters: *loc_cell
     cell_voltage_1:
       name: "Cell 1 Voltage"
+      filters: *loc_cell
     cell_voltage_2:
       name: "Cell 2 Voltage"
+      filters: *loc_cell
     cell_voltage_3:
       name: "Cell 3 Voltage"
+      filters: *loc_cell
     cell_voltage_4:
       name: "Cell 4 Voltage"
+      filters: *loc_cell
     cell_voltage_5:
       name: "Cell 5 Voltage"
+      filters: *loc_cell
     cell_voltage_6:
       name: "Cell 6 Voltage"
+      filters: *loc_cell
     cell_voltage_7:
       name: "Cell 7 Voltage"
+      filters: *loc_cell
     cell_voltage_8:
       name: "Cell 8 Voltage"
+      filters: *loc_cell
 
     # ── Nhiệt độ ──
     mosfet_temperature:
