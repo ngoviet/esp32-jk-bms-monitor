@@ -1,49 +1,83 @@
-# Tích hợp common.yaml để tái sử dụng config chung
-<<: !include common.yaml
+# =============================================================================
+# ESP32 đọc JK-BMS pin LiFePO4 24 V 280 Ah (8 cell) — tầng 3
+# Cổng GPS/RS485 của BMS (UART-TTL) → ESP32 GPIO16 (TX) / GPIO17 (RX)
+# Thư viện: syssi/esphome-jk-bms 3.1.0 (cần ESPHome ≥ 2026.1.0)
+#
+# ⚠️ Mọi `name:` bên dưới là nguồn của entity_id trên Home Assistant
+#    (sensor.tang_3_24v280ah_*): dashboard, package năng lượng và loa Xiaozhi
+#    đọc theo các tên này. KHÔNG đổi tên, kể cả tên lạ như
+#    "Cell Pressure Difference Protection" hay "balancing switch".
+# =============================================================================
 
-external_components:
-  # 3.0.0 + bản sửa biên dịch cho ESPHome 2026.11 (tag 3.0.0 thiếu format_hex_pretty), ghim 19/11/2026
-  - source: github://syssi/esphome-jk-bms@daa3f7719096ca5bf127b6a9dfdaa4454d7de83f
-
-esphome:
+substitutions:
   name: 24v280ah
   friendly_name: 24v280ah
+  log_level: DEBUG
+  tx_pin: GPIO16
+  rx_pin: GPIO17
+
+packages:
+  common: !include common.yaml
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  comment: "JK-BMS 24V 280Ah tầng 3 (RS485/UART)"
+  min_version: 2026.1.0
 
 esp32:
   board: esp32dev
-  # Ghi rõ: khối esp32 của common.yaml bị bỏ khi trộn '<<', bản 2025.9.1 trước đây
-  # vì thế chạy Arduino. Từ 19/11/2026 chạy ESP-IDF (mặc định từ ESPHome 2026.1).
-  framework:
-    type: esp-idf
 
-# ──────────────────────────── Wi-Fi networks riêng ────────────────────────────
-wifi:
-  networks:
-    # Không ghim BSSID/kênh nữa (19/11/2026): Aruba tự đổi kênh (T3 nay ở kênh 1),
-    # mà ESPHome 2026.x chỉ nhận AP đúng kênh đã ghim -> thiết bị mất mạng sau
-    # khi nạp. Để thiết bị tự quét và chọn AP mạnh nhất, như các repo khác (18/11).
-    - ssid: !secret wifi_ssid
-      password: !secret wifi_password
+external_components:
+  # Ghim theo tag phát hành, không theo nhánh main (main đổi hằng ngày).
+  - source: github://syssi/esphome-jk-bms@3.1.0
+    components: [jk_modbus, jk_bms]
 
+# ───────────────────────── Đường truyền tới BMS ─────────────────────────
 uart:
   id: uart_0
-  tx_pin: GPIO16
-  rx_pin: GPIO17
+  tx_pin: ${tx_pin}
+  rx_pin: ${rx_pin}
   baud_rate: 115200
-  rx_buffer_size: 1024        
+  rx_buffer_size: 1024
 
 jk_modbus:
   id: modbus0
   uart_id: uart_0
+  rx_timeout: 50ms
 
 jk_bms:
   id: bms0
   jk_modbus_id: modbus0
   update_interval: 5s
 
+# ───────────────────────── Trạng thái ─────────────────────────
+binary_sensor:
+  - platform: jk_bms
+    balancing:
+      name: "Balancing"
+    balancing_switch:
+      name: "balancing switch"
+    charging:
+      name: "Charging"
+    discharging:
+      name: "Discharging"
+    dedicated_charger_switch:
+      name: "dedicated charger switch"
+    online_status:
+      name: "Online Status"
+
+# Bật/tắt MOSFET sạc, xả của BMS (HA nên chặn gọi nhầm).
+switch:
+  - platform: jk_bms
+    charging:
+      name: "Charging"
+    discharging:
+      name: "Discharging"
+
 sensor:
   - platform: jk_bms
-    
+    # ── Pin ──
     total_voltage:
       name: "Total Voltage"
     current:
@@ -52,7 +86,24 @@ sensor:
       name: "Power"
     charging_power:
       name: "Charging Power"
+    discharging_power:
+      name: "Discharging Power"
+    state_of_charge:
+      name: "Remaining Capacity"
+    capacity_remaining:
+      name: "Capacity Remaining Derived"
+    actual_battery_capacity:
+      name: "Actual Battery Capacity"
+    charging_cycles:
+      name: "Charging Cycles"
+    total_charging_cycle_capacity:
+      name: "Total Charging Cycle Capacity"
+    total_runtime:
+      name: "Total Runtime"
+    cell_count:
+      name: "Battery Strings"
 
+    # ── Cell ──
     min_cell_voltage:
       name: "Min Cell V"
     max_cell_voltage:
@@ -65,18 +116,6 @@ sensor:
       name: "Delta Cell V"
     average_cell_voltage:
       name: "Average Cell V"
-    discharging_power:
-      name: "Discharging Power"
-    state_of_charge:
-      name: "Remaining Capacity"
-    capacity_remaining:
-      name: "Capacity Remaining Derived"
-    temperature_sensor_1:
-      name: "Temperature Sensor 1"
-    temperature_sensor_2:
-      name: "Temperature Sensor 2"
-    mosfet_temperature:
-      name: "MOSFET Temperature"
     cell_voltage_1:
       name: "Cell 1 Voltage"
     cell_voltage_2:
@@ -93,19 +132,22 @@ sensor:
       name: "Cell 7 Voltage"
     cell_voltage_8:
       name: "Cell 8 Voltage"
+
+    # ── Nhiệt độ ──
+    mosfet_temperature:
+      name: "MOSFET Temperature"
+    temperature_sensor_1:
+      name: "Temperature Sensor 1"
+    temperature_sensor_2:
+      name: "Temperature Sensor 2"
+
+    # ── Trạng thái dạng bit ──
     errors_bitmask:
       name: "Error Bitmask"
-    charging_cycles:
-      name: "Charging Cycles"
-    total_charging_cycle_capacity:
-      name: "Total Charging Cycle Capacity"
-    total_runtime:
-      name: "Total Runtime"
-    cell_count:
-      name: "Battery Strings"
-
     operation_mode_bitmask:
       name: "Operation Mode Bitmask"
+
+    # ── Ngưỡng bảo vệ (BMS chỉ báo, ESP không ghi) ──
     total_voltage_overvoltage_protection:
       name: "Total Voltage Overvoltage Protection"
     total_voltage_undervoltage_protection:
@@ -158,6 +200,8 @@ sensor:
       name: "Discharging Low Temperature Protection"
     discharging_undertemperature_recovery:
       name: "Discharging Low Temperature Recovery"
+
+    # ── Thông số cài đặt ──
     full_charge_capacity:
       name: "Total Battery Capacity Setting"
     current_calibration:
@@ -170,35 +214,6 @@ sensor:
       name: "Alarm Low Volume"
     manufacturing_date:
       name: "Manufacturing Date"
-
-#    start_current_calibration:
-#      name: "start current calibration"
-    actual_battery_capacity:
-      name: "Actual Battery Capacity"
-#    protocol_version:
-#      name: "protocol version"
-binary_sensor:
-  - platform: jk_bms
-    jk_bms_id: bms0
-    balancing:
-      name: "Balancing"
-    balancing_switch:
-      name: "balancing switch"
-    charging:
-      name: "Charging"
-    discharging:
-      name: "Discharging"
-    dedicated_charger_switch:
-      name: "dedicated charger switch"
-    online_status:
-      name: "Online Status"
-
-switch:
-  - platform: jk_bms
-    charging:
-      name: "Charging"
-    discharging:
-      name: "Discharging"
 
 text_sensor:
   - platform: jk_bms
@@ -216,7 +231,5 @@ text_sensor:
       name: "Password"
     device_type:
       name: "Device Type"
-
-
     total_runtime_formatted:
       name: "Total Runtime Formatted"

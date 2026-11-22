@@ -1,26 +1,32 @@
-
 # =============================================================================
-# ESP32 Base Configuration
-# Cấu hình cơ bản cho tất cả các thiết bị ESP32 trong hệ thống
+# Cấu hình chung cho ESP32 trong nhà (nạp bằng `packages:` ở file thiết bị)
+#
+# Dùng `packages:` chứ không dùng `<<: !include`: `<<` là phép trộn YAML nông,
+# file thiết bị khai báo `wifi:`/`sensor:` là thay HẲN khối đó của file này
+# (trước 22/11/2026 vì thế mất fast_connect=false, reboot_timeout và toàn bộ
+# cảm biến chẩn đoán). `packages:` trộn sâu: dict gộp khoá, list nối thêm.
 # =============================================================================
 
-# ───────────────────────── ESP32 Platform ─────────────────────────
 esp32:
-  # board: ${board}  # Sẽ được override bởi file con
   framework:
     type: esp-idf
 
-# ───────────────────────── Core Services ─────────────────────────
+# ───────────────────────── Dịch vụ lõi ─────────────────────────
 logger:
   baud_rate: 115200
-  level: DEBUG
+  level: ${log_level}
 
 api:
+  # 0s = không tự khởi động lại khi mất kết nối HA (đọc BMS vẫn chạy).
   reboot_timeout: 0s
 
 ota:
   - platform: esphome
     password: !secret ota_password
+
+# Nạp OTA hỏng mà thiết bị khởi động lại liên tục (≥10 lần, mỗi lần < 1 phút)
+# thì ở chế độ an toàn: chỉ Wi-Fi + OTA, để nạp lại bản khác qua mạng.
+safe_mode:
 
 web_server:
   port: 80
@@ -28,56 +34,44 @@ web_server:
 time:
   - platform: sntp
 
-# ───────────────────────── WiFi Configuration ─────────────────────────
+# ───────────────────────── Wi-Fi ─────────────────────────
 wifi:
-  # Cấu hình networks sẽ được override bởi file con
-  fast_connect: true
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  # KHÔNG ghim bssid/channel: từ ESPHome 2026.x thiết bị chỉ nhận đúng AP đã
+  # ghim, AP bị thay hay đổi kênh là mất mạng vĩnh viễn (sự cố 19→22/11/2026:
+  # BSSID ghim thuộc AP cũ đã thay). fast_connect=false để quét cả 3 AP Aruba
+  # cùng SSID và chọn AP mạnh nhất, thay vì vào AP đầu tiên tìm thấy.
+  fast_connect: false
   power_save_mode: none
   reboot_timeout: 10min
+  # Lối cứu: không vào được Wi-Fi nhà sau 1 phút thì phát điểm truy cập riêng.
+  # Nối điện thoại vào "${name}-cuu" (mật khẩu ap_password), mở 192.168.4.1
+  # để nhập lại Wi-Fi hoặc nạp firmware, không phải tháo thiết bị cắm USB.
+  ap:
+    ssid: "${name}-cuu"
+    password: !secret ap_password
 
 captive_portal:
 
-
-# ───────────────────────── System Monitoring Sensors ─────────────────────────
+# ───────────────────────── Chẩn đoán ─────────────────────────
 sensor:
-  # System Uptime
   - platform: uptime
     name: "Uptime Seconds"
-    id: uptime_sec  
-    update_interval: 10s
+    id: uptime_sec
+    update_interval: 60s
+    entity_category: diagnostic
 
-  # Memory monitoring
   - platform: template
     name: "Heap Free"
-    id: heap_free_kb
     unit_of_measurement: "kB"
+    icon: mdi:memory
     accuracy_decimals: 0
-    update_interval: 30s
+    update_interval: 60s
     entity_category: diagnostic
     lambda: |-
-      #ifdef ESP_IDF_VERSION
-        size_t free_bytes = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-      #else
-        size_t free_bytes = ESP.getFreeHeap();
-      #endif
-      return (float) free_bytes / 1024.0f;
+      return heap_caps_get_free_size(MALLOC_CAP_8BIT) / 1024.0f;
 
-  - platform: template
-    name: "PSRAM Free"
-    id: psram_free_kb
-    unit_of_measurement: "kB"
-    accuracy_decimals: 0
-    update_interval: 30s
-    entity_category: diagnostic
-    lambda: |-
-      #if CONFIG_SPIRAM
-        size_t free_bytes = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-        return (float) free_bytes / 1024.0f;
-      #else
-        return NAN;  // Không có PSRAM thì trả NAN (ẩn biểu đồ)
-      #endif
-
-  # WiFi Signal Monitoring
   - platform: wifi_signal
     id: rssi_dbm
     name: "WiFi RSSI"
@@ -88,71 +82,37 @@ sensor:
           window_size: 5
           send_every: 1
 
-  # WiFi Quality Percentage (0-100%)
-  - platform: template
-    id: wifi_quality_pct
+  - platform: copy
+    source_id: rssi_dbm
     name: "WiFi Quality"
     unit_of_measurement: "%"
+    icon: mdi:wifi
     accuracy_decimals: 0
-    update_interval: 30s
     entity_category: diagnostic
-    lambda: |-
-      float rssi = id(rssi_dbm).state;
-      if (isnan(rssi)) return NAN;
-      if (rssi <= -100) return 0;
-      if (rssi >= -50)  return 100;
-      return (rssi + 100.0f) * 2.0f;
+    device_class: ""
+    state_class: measurement
+    filters:
+      # -100 dBm = 0 %, -50 dBm = 100 %
+      - lambda: return clamp((x + 100.0f) * 2.0f, 0.0f, 100.0f);
 
 text_sensor:
-  - platform: template
+  - platform: uptime
     name: "Uptime"
-    icon: mdi:clock-outline
     entity_category: diagnostic
-    lambda: |-
-      uint32_t t = (uint32_t) id(uptime_sec).state;
-      uint32_t d = t / 86400;
-      uint32_t h = (t % 86400) / 3600;
-      uint32_t m = (t % 3600) / 60;
-      uint32_t s = t % 60;
-      char buf[40];
-      if (d)       snprintf(buf, sizeof(buf), "%ud %uh %um %us", d, h, m, s);
-      else if (h)  snprintf(buf, sizeof(buf), "%uh %um %us", h, m, s);
-      else if (m)  snprintf(buf, sizeof(buf), "%um %us", m, s);
-      else         snprintf(buf, sizeof(buf), "%us", s);
-      return std::string(buf);
-    update_interval: 10s
   - platform: wifi_info
     ip_address:
       name: "WiFi IP"
     ssid:
       name: "WiFi SSID"
+    # Cho biết đang bám AP Aruba nào (T1/T2/T3)
     bssid:
       name: "WiFi BSSID"
     mac_address:
       name: "WiFi MAC"
-  # 3) Quy đổi dBm -> số vạch "x/5"
-  - platform: template
-    id: wifi_bars
-    name: "WiFi Bars"
-    update_interval: 30s
-    entity_category: diagnostic
-    lambda: |-
-      float rssi = id(rssi_dbm).state;
-      if (isnan(rssi)) return {"N/A"};
-      int bars = 0;
-      if (rssi >= -55) bars = 5;
-      else if (rssi >= -65) bars = 4;
-      else if (rssi >= -72) bars = 3;
-      else if (rssi >= -80) bars = 2;
-      else if (rssi >= -90) bars = 1;
-      else bars = 0;
-      char buffer[5];
-      sprintf(buffer, "%d/5", bars);
-      return {buffer};
 
-# ── Nút restart thủ công ─────────────────────────────────────────────
 button:
   - platform: restart
-    id: restart_button
     name: "Restart thiết bị"
-
+  - platform: safe_mode
+    name: "Khởi động chế độ an toàn"
+    entity_category: diagnostic

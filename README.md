@@ -28,7 +28,9 @@ integrated with **Home Assistant** through ESPHome.
 - **Voltage, current, temperature and capacity** sensors, plus system diagnostics
 - **Charge / discharge switches** controllable from Home Assistant
 - **Home Assistant integration** through ESPHome
-- **Optional BSSID / channel pinning** for a faster, more stable WiFi connection
+- **Wi-Fi picks the strongest AP** among APs sharing the SSID, with a **rescue hotspot** `24v280ah-cuu` when the home Wi-Fi is unreachable
+- **Diagnostic sensors**: RSSI, Wi-Fi quality, connected AP (BSSID), IP, free heap, uptime
+- Built on [syssi/esphome-jk-bms](https://github.com/syssi/esphome-jk-bms) **3.1.0**, ESPHome **2026.11**, **ESP-IDF** framework
 
 ## Hardware
 
@@ -59,7 +61,7 @@ JK-BMS RS485 ↔ TTL Converter ↔ ESP32
 - Install ESPHome
 - Connect the ESP32 to the JK-BMS through an RS485/TTL converter
 - **Security configuration**: copy `secrets.yaml.example` → `secrets.yaml` and fill in your real details
-- **WiFi setup**: set the SSID and password, plus BSSID/channel if needed
+- **Wi-Fi**: set the SSID, password, `ota_password` and `ap_password` (rescue hotspot password)
 
 ### 2. Flash the firmware
 
@@ -92,21 +94,15 @@ wifi_ssid: "Your_WiFi_Name"
 wifi_password: "Your_WiFi_Password"
 ```
 
-### Advanced WiFi (optional)
+### No BSSID/channel pinning
 
-If several access points share the same SSID, or you want to prefer a specific AP:
+The old config pinned one Aruba AP's BSSID and channel. Since ESPHome 2026.x the device only accepts the pinned AP: on 19 Nov 2026 the pinned BSSID belonged to a replaced AP, so after an OTA update the device never rejoined (it had to be reflashed over USB). `common.yaml` now sets `fast_connect: false`, so the device scans all 3 APs with the same SSID and picks the strongest. **Do not add `bssid`/`channel` back.**
 
-```yaml
-# Pin a specific BSSID and channel
-wifi_bssid_t3: "aa:bb:cc:dd:ee:ff"
-wifi_channel_t3: 11
-```
+### Config layout
 
-Benefits of pinning the BSSID/channel:
+`jk-bms-24v280ah.yaml` loads `common.yaml` through `packages:` (deep merge). Do not use `<<: !include`: it is a shallow merge, so a `wifi:`/`sensor:` block in the device file replaces the whole block from `common.yaml` (the old config lost its Wi-Fi settings and all diagnostic sensors this way).
 
-- **Faster connect**: no need to scan every channel
-- **Stable connection**: always connects to the intended AP
-- **Better roaming**: avoids connecting to a distant AP or a weak signal
+Every `name:` in the device file is the source of a Home Assistant entity_id (`sensor.tang_3_24v280ah_*`): do not rename them.
 
 ### Security
 
@@ -160,7 +156,7 @@ integration. It provides:
 ### Common errors
 
 1. **Cannot connect to the BMS**: check the RS485 wiring and the baud rate
-2. **Unstable WiFi**: check the signal strength and the channel configuration
+2. **Wi-Fi lost**: check the `WiFi RSSI`/`WiFi BSSID` sensors. If the device cannot join, after 1 minute it starts `24v280ah-cuu`: connect a phone and open `192.168.4.1` to re-enter Wi-Fi or upload firmware
 3. **Data does not update**: check the logs, restart the device
 
 ### Debug
