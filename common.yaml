@@ -47,7 +47,7 @@ wifi:
   reboot_timeout: 10min
   # Lối cứu: không vào được Wi-Fi nhà sau 1 phút thì phát điểm truy cập riêng.
   # Nối điện thoại vào "${name}-cuu" (mật khẩu ap_password), mở 192.168.4.1
-  # để nhập lại Wi-Fi hoặc nạp firmware, không phải tháo thiết bị cắm USB.
+  # để nhập lại Wi-Fi; nạp firmware: esphome upload ... --device 192.168.4.1.
   ap:
     ssid: "${name}-cuu"
     password: !secret ap_password

@@ -156,7 +156,7 @@ integration, với các dữ liệu giám sát:
 ### Lỗi thường gặp
 
 1. **Không kết nối được BMS**: Kiểm tra kết nối RS485, baud rate
-2. **Mất Wi-Fi**: xem cảm biến `WiFi RSSI`/`WiFi BSSID`. Không vào được mạng thì sau 1 phút thiết bị phát `24v280ah-cuu`: nối điện thoại vào, mở `192.168.4.1` để nhập lại Wi-Fi hoặc nạp firmware
+2. **Mất Wi-Fi**: xem cảm biến `WiFi RSSI`/`WiFi BSSID`. Không vào được mạng thì sau 1 phút thiết bị phát `24v280ah-cuu`: nối điện thoại vào, mở `192.168.4.1` để nhập lại Wi-Fi; nạp firmware khi đang nối điểm này: `esphome upload jk-bms-24v280ah.yaml --device 192.168.4.1`
 3. **Dữ liệu không cập nhật**: Kiểm tra logs, restart thiết bị
 
 ### Debug

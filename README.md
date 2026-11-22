@@ -156,7 +156,7 @@ integration. It provides:
 ### Common errors
 
 1. **Cannot connect to the BMS**: check the RS485 wiring and the baud rate
-2. **Wi-Fi lost**: check the `WiFi RSSI`/`WiFi BSSID` sensors. If the device cannot join, after 1 minute it starts `24v280ah-cuu`: connect a phone and open `192.168.4.1` to re-enter Wi-Fi or upload firmware
+2. **Wi-Fi lost**: check the `WiFi RSSI`/`WiFi BSSID` sensors. If the device cannot join, after 1 minute it starts `24v280ah-cuu`: connect a phone and open `192.168.4.1` to re-enter Wi-Fi; to upload firmware while connected to it: `esphome upload jk-bms-24v280ah.yaml --device 192.168.4.1`
 3. **Data does not update**: check the logs, restart the device
 
 ### Debug
