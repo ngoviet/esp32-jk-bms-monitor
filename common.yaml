@@ -20,9 +20,10 @@ api:
   # 0s = không tự khởi động lại khi mất kết nối HA (đọc BMS vẫn chạy).
   reboot_timeout: 0s
 
+# Không đặt mật khẩu OTA (chủ chốt 22/11/2026): thiết bị chỉ ở mạng nội bộ (VLAN 20),
+# API và web_server cũng không có mật khẩu, nên mật khẩu OTA không thêm lớp bảo vệ nào.
 ota:
   - platform: esphome
-    password: !secret ota_password
 
 # Nạp OTA hỏng mà thiết bị khởi động lại liên tục (≥10 lần, mỗi lần < 1 phút)
 # thì ở chế độ an toàn: chỉ Wi-Fi + OTA, để nạp lại bản khác qua mạng.

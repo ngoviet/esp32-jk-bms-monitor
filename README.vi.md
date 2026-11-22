@@ -61,7 +61,7 @@ JK-BMS RS485 ↔ TTL Converter ↔ ESP32
 - Cài đặt ESPHome
 - Kết nối ESP32 với JK-BMS qua RS485/TTL converter
 - **Cấu hình bảo mật**: Copy `secrets.yaml.example` → `secrets.yaml` và điền thông tin thực tế
-- **Wi-Fi**: điền SSID, mật khẩu, `ota_password` và `ap_password` (mật khẩu điểm truy cập cứu hộ)
+- **Wi-Fi**: điền SSID, mật khẩu và `ap_password` (mật khẩu điểm truy cập cứu hộ). Nạp OTA không cần mật khẩu
 
 ### 2. Flash firmware
 
@@ -110,8 +110,7 @@ Mọi `name:` trong file thiết bị là nguồn của entity_id trên Home Ass
 
 1. **KHÔNG BAO GIỜ** commit file `secrets.yaml` lên Git
 2. Sử dụng **passwords mạnh** (ít nhất 12 ký tự)
-3. **Thay đổi OTA password** khỏi mặc định
-4. Kiểm tra `.gitignore` trước khi commit
+3. Kiểm tra `.gitignore` trước khi commit
 
 Thiết lập bảo mật:
 
@@ -122,9 +121,6 @@ cp secrets.yaml.example secrets.yaml
 # 2. Chỉnh sửa với thông tin thực tế
 # 3. Kiểm tra gitignore
 git status  # secrets.yaml KHÔNG được hiển thị
-
-# 4. Tạo OTA password mạnh
-openssl rand -base64 32
 ```
 
 ## Home Assistant
