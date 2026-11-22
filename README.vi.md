@@ -28,7 +28,9 @@ thông qua ESPHome.
 - **Cảm biến điện áp, dòng điện, nhiệt độ, dung lượng** cùng thông số hệ thống
 - **Công tắc bật/tắt sạc, xả** điều khiển từ Home Assistant
 - **Tích hợp Home Assistant** qua ESPHome
-- **Tùy chọn chỉ định BSSID/channel** để WiFi kết nối nhanh và ổn định hơn
+- **Wi-Fi tự chọn AP mạnh nhất** trong các AP cùng SSID, kèm **điểm truy cập cứu hộ** `24v280ah-cuu` khi không vào được Wi-Fi nhà
+- **Cảm biến chẩn đoán**: RSSI, chất lượng Wi-Fi, AP đang bám (BSSID), IP, heap trống, uptime
+- Dựa trên [syssi/esphome-jk-bms](https://github.com/syssi/esphome-jk-bms) **3.1.0**, ESPHome **2026.11**, framework **ESP-IDF**
 
 ## Phần cứng
 
@@ -59,7 +61,7 @@ JK-BMS RS485 ↔ TTL Converter ↔ ESP32
 - Cài đặt ESPHome
 - Kết nối ESP32 với JK-BMS qua RS485/TTL converter
 - **Cấu hình bảo mật**: Copy `secrets.yaml.example` → `secrets.yaml` và điền thông tin thực tế
-- **WiFi Setup**: Cấu hình SSID, password, và tùy chọn BSSID/channel nếu cần
+- **Wi-Fi**: điền SSID, mật khẩu, `ota_password` và `ap_password` (mật khẩu điểm truy cập cứu hộ)
 
 ### 2. Flash firmware
 
@@ -92,21 +94,15 @@ wifi_ssid: "Your_WiFi_Name"
 wifi_password: "Your_WiFi_Password"
 ```
 
-### Cấu hình WiFi nâng cao (tùy chọn)
+### Không ghim BSSID/kênh
 
-Nếu có nhiều Access Point cùng SSID hoặc muốn ưu tiên AP cụ thể:
+Bản cũ ghim BSSID và kênh của một AP Aruba. Từ ESPHome 2026.x, thiết bị chỉ nhận đúng AP đã ghim: ngày 19/11/2026, BSSID ghim thuộc một AP đã được thay, nên sau lần nạp OTA thiết bị không bao giờ vào lại mạng (phải nạp lại qua USB). Nay `common.yaml` để `fast_connect: false`, thiết bị quét cả 3 AP cùng SSID và chọn AP mạnh nhất. **Đừng thêm lại `bssid`/`channel`.**
 
-```yaml
-# Chỉ định BSSID và channel cụ thể
-wifi_bssid_t3: "aa:bb:cc:dd:ee:ff"
-wifi_channel_t3: 11
-```
+### Cấu trúc cấu hình
 
-Lợi ích của việc chỉ định BSSID/Channel:
+`jk-bms-24v280ah.yaml` nạp `common.yaml` bằng `packages:` (trộn sâu). Không dùng `<<: !include`: đó là phép trộn nông, file thiết bị có `wifi:`/`sensor:` là thay hẳn khối đó của `common.yaml` (bản cũ vì thế mất cấu hình Wi-Fi và mọi cảm biến chẩn đoán).
 
-- **Faster connect**: Không cần scan toàn bộ channels
-- **Stable connection**: Luôn kết nối đúng AP mong muốn
-- **Better roaming**: Tránh kết nối AP xa hoặc signal yếu
+Mọi `name:` trong file thiết bị là nguồn của entity_id trên Home Assistant (`sensor.tang_3_24v280ah_*`): đừng đổi tên.
 
 ### Bảo mật
 
@@ -160,7 +156,7 @@ integration, với các dữ liệu giám sát:
 ### Lỗi thường gặp
 
 1. **Không kết nối được BMS**: Kiểm tra kết nối RS485, baud rate
-2. **WiFi không ổn định**: Kiểm tra signal strength, cấu hình channel
+2. **Mất Wi-Fi**: xem cảm biến `WiFi RSSI`/`WiFi BSSID`. Không vào được mạng thì sau 1 phút thiết bị phát `24v280ah-cuu`: nối điện thoại vào, mở `192.168.4.1` để nhập lại Wi-Fi; nạp firmware khi đang nối điểm này: `esphome upload jk-bms-24v280ah.yaml --device 192.168.4.1`
 3. **Dữ liệu không cập nhật**: Kiểm tra logs, restart thiết bị
 
 ### Debug
